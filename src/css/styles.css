@@ -1,0 +1,187 @@
+/* Estilos comunes para todas las páginas */
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.py-4 {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.mb-4 {
+  margin-bottom: 1.5rem;
+}
+
+/* Estilos específicos para la página principal (index.html) */
+#productosDestacadosList,
+#ultimasVentasList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Estilos específicos para la página de productos (productos.html) */
+#productosList {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Estilos específicos para la página de empleados (empleados.html) */
+#empleadosTableBody td,
+#empleadosTableBody th {
+  vertical-align: middle;
+}
+
+/* Estilos específicos para la página de reportes (reportes.html) */
+#reportContent,
+#reportContentProductos {
+  min-height: 200px;
+  border: 1px solid #ddd;
+  padding: 10px;
+}
+
+/* Estilo para las cartas de producto */
+.card {
+  width: 18rem;
+  margin: 10px;
+}
+
+.card img {
+  height: 200px;
+  object-fit: cover;
+}
+
+.card-body {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Estilos para el encabezado */
+header {
+  position: relative;
+  background-color: #007bff;
+  color: #fff;
+  text-align: center;
+  padding: 10px 0;
+}
+
+header img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+/* Estilos para el footer */
+footer {
+  padding: 20px;
+  background-color: #007bff;
+  color: #ffffff;
+  display: flex; /* Usamos flex para centrar el contenido */
+  justify-content: center; /* Centra horizontalmente */
+  align-items: center; /* Centra verticalmente */
+}
+
+.footerImg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+footer img {
+  max-width: 50px;
+}
+
+/* Media Query para pantallas más pequeñas */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 10px;
+  }
+
+  .py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .card {
+    margin: 10px 0;
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+
+  /* Ajustes adicionales para pantallas más pequeñas */
+  .card-body {
+    height: auto;
+  }
+
+  .img-thumbnail {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* Estilos para ajustar el tamaño máximo del logo en la cabecera */
+header img {
+  max-width: 150px; /* Ajustar el tamaño máximo del ancho del logo */
+  max-height: 60px; /* Ajustar el tamaño máximo de la altura del logo */
+}
+
+.img-thumbnail {
+  width: 150px; /* Tamaño deseado para el ancho de la imagen */
+  height: 150px; /* Tamaño deseado para la altura de la imagen */
+  object-fit: cover; /* Hace que la imagen mantenga su relación de aspecto y cubra completamente el contenedor */
+}
+
+/* Estilos para la página de contacto (contacto.html) */
+
+.contacto-container {
+  text-align: center;
+}
+
+.contacto-form {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f8f8f8;
+}
+
+.contacto-form label {
+  font-weight: bold;
+}
+
+.contacto-form input[type="text"],
+.contacto-form input[type="email"],
+.contacto-form textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.contacto-form textarea {
+  resize: vertical;
+}
+
+.btn-enviar {
+  width: 100%;
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-enviar:hover {
+  background-color: #0056b3;
+}
