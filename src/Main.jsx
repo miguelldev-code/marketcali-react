@@ -9,6 +9,10 @@ import "./css/Navbar.css";
 import "./css/Footer.css";
 import "./css/HomePage.css";
 import "./css/About.css";
+import "./css/Producto.css";
+import "./css/ProductoVisualizador.css";
+import "./css/ProductoCRUD.css"
+
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
