@@ -16,7 +16,7 @@ function App() {
         <Routes>
           {/* Rutas públicas */}
           <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<About />} />
+          <Route path="/sobrenosotros" element={<About />} />
           <Route path="/productos" element={<Producto />} />
           <Route path="/producto/:id" element={<ProductoVisualizador />} />
           <Route path="/admin/productos" element={<ProductoCRUD />} />
