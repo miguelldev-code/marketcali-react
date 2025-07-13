@@ -29,7 +29,7 @@ function Navbar() {
         { path: "/productos/ropa", text: "Ropa" },
       ],
     },
-    { path: "/about", text: "¿Quiénes Somos?" },
+    { path: "/sobrenosotros", text: "¿Quiénes Somos?" },
     { path: "/contacto", text: "Contacto" },
   ];
 
