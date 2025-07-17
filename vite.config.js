@@ -11,4 +11,14 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: ['quagga'],
+    exclude: ['@ericblade/quagga2'],
+  },
+  resolve: {
+    alias: {
+      'quagga': '@ericblade/quagga2',
+    },
+  },
+
 });
