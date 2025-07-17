@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
-import { 
-  FaPlus, FaEdit, FaTrash, FaSearch, FaBarcode, 
-  FaBox, FaTags, FaMoneyBillWave, FaInfoCircle 
+import { useState, useEffect, useRef, useMemo } from "react";
+import {
+  FaPlus, FaEdit, FaTrash, FaSearch, FaBarcode,
+  FaBox, FaArrowLeft
 } from "react-icons/fa";
 import Modal from 'react-modal';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import BarcodeScanner from "../../components/BarcodeScanner";
 
 Modal.setAppElement('#root');
 
@@ -11,12 +14,17 @@ const ProductosCRUD = () => {
   const [productos, setProductos] = useState([]);
   const [filteredProductos, setFilteredProductos] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [modalIsOpen, setModalIsOpen] = useState(false);
   const [currentProducto, setCurrentProducto] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [step, setStep] = useState('barcode');
+  const [tempBarcode, setTempBarcode] = useState('');
+  const scannerRef = useRef(null);
+  const [modalType, setModalType] = useState(null);
 
   const [formData, setFormData] = useState({
+    codigoBarras: "",
     nombre: "",
     marca: "",
     precio: 0,
@@ -26,7 +34,6 @@ const ProductosCRUD = () => {
     imagen: ""
   });
 
-  // Obtener productos
   useEffect(() => {
     const fetchProductos = async () => {
       try {
@@ -44,12 +51,12 @@ const ProductosCRUD = () => {
     fetchProductos();
   }, []);
 
-  // Filtrar productos
   useEffect(() => {
     const filtered = productos.filter(producto =>
       producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (producto.marca && producto.marca.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (producto.categoria && producto.categoria.toLowerCase().includes(searchTerm.toLowerCase()))
+      (producto.categoria && producto.categoria.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (producto.codigoBarras && producto.codigoBarras.includes(searchTerm))
     );
     setFilteredProductos(filtered);
   }, [searchTerm, productos]);
@@ -62,9 +69,27 @@ const ProductosCRUD = () => {
     });
   };
 
-  const openNewModal = () => {
-    setCurrentProducto(null);
+  const handleBarcodeSubmit = async () => {
+    if (!tempBarcode) {
+      toast.error('Por favor ingrese un código de barras');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/productos/codigo/${tempBarcode}`);
+
+      if (response.ok) {
+        const productoExistente = await response.json();
+        toast.warn(`El código ${tempBarcode} ya existe para el producto: ${productoExistente.nombre}`);
+        mostrarProducto(productoExistente);
+        return;
+      }
+    } catch (error) {
+      console.error("Error al verificar código:", error);
+    }
+
     setFormData({
+      codigoBarras: tempBarcode,
       nombre: "",
       marca: "",
       precio: 0,
@@ -73,25 +98,35 @@ const ProductosCRUD = () => {
       descripcion: "",
       imagen: ""
     });
-    setModalIsOpen(true);
+    setStep('form');
   };
 
-  const openEditModal = (producto) => {
-    setCurrentProducto(producto);
-    setFormData({
-      nombre: producto.nombre,
-      marca: producto.marca || "",
-      precio: producto.precio,
-      cantidad: producto.cantidad,
-      categoria: producto.categoria || "",
-      descripcion: producto.descripcion || "",
-      imagen: producto.imagen || ""
-    });
-    setModalIsOpen(true);
+  const openScannerModal = () => {
+    setModalType('scanner');
+    setCurrentProducto(null);
+    setTempBarcode('');
   };
+
+  const openFormModal = (producto = null) => {
+    setModalType('form');
+    setCurrentProducto(producto);
+    if (producto) {
+      setFormData({
+        codigoBarras: producto.codigoBarras || "",
+        nombre: producto.nombre,
+        marca: producto.marca || "",
+        precio: producto.precio,
+        cantidad: producto.cantidad,
+        categoria: producto.categoria || "",
+        descripcion: producto.descripcion || "",
+        imagen: producto.imagen || ""
+      });
+    }
+  };
+
 
   const closeModal = () => {
-    setModalIsOpen(false);
+    setModalType(null);
   };
 
   const handleSubmit = async (e) => {
@@ -99,7 +134,7 @@ const ProductosCRUD = () => {
     setLoading(true);
 
     try {
-      const url = currentProducto 
+      const url = currentProducto
         ? `http://localhost:8080/api/productos/${currentProducto.id}`
         : "http://localhost:8080/api/productos";
 
@@ -118,7 +153,7 @@ const ProductosCRUD = () => {
       const updatedProduct = await response.json();
 
       if (currentProducto) {
-        setProductos(productos.map(p => 
+        setProductos(productos.map(p =>
           p.id === currentProducto.id ? updatedProduct : p
         ));
       } else {
@@ -126,8 +161,9 @@ const ProductosCRUD = () => {
       }
 
       closeModal();
+      toast.success(`Producto ${currentProducto ? "actualizado" : "creado"} correctamente`);
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -144,9 +180,237 @@ const ProductosCRUD = () => {
       if (!response.ok) throw new Error("Error al eliminar el producto");
 
       setProductos(productos.filter(p => p.id !== id));
+      toast.success("Producto eliminado correctamente");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
+  };
+
+  const handleBarcodeScanned = async (codigoBarras) => {
+    setTempBarcode(codigoBarras);
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/productos/codigo/${codigoBarras}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const producto = await response.json();
+        setFormData({
+          codigoBarras: producto.codigoBarras,
+          nombre: producto.nombre,
+          marca: producto.marca || "",
+          precio: producto.precio,
+          cantidad: producto.cantidad,
+          categoria: producto.categoria || "",
+          descripcion: producto.descripcion || "",
+          imagen: producto.imagen || ""
+        });
+        setModalType('form');
+        toast.success(`Producto encontrado: ${producto.nombre}`);
+      } else if (response.status === 404) {
+        setFormData({
+          codigoBarras: codigoBarras,
+          nombre: "",
+          marca: "",
+          precio: 0,
+          cantidad: 0,
+          categoria: "",
+          descripcion: "",
+          imagen: ""
+        });
+        setModalType('form');
+      } else {
+        throw new Error(await response.text());
+      }
+    } catch (error) {
+      toast.error(`Error: ${error.message}`);
+    }
+  };
+
+  const mostrarProducto = (producto) => {
+    setCurrentProducto(producto);
+    setFormData({
+      codigoBarras: producto.codigoBarras,
+      nombre: producto.nombre,
+      marca: producto.marca,
+      precio: producto.precio,
+      cantidad: producto.cantidad,
+      categoria: producto.categoria,
+      descripcion: producto.descripcion,
+      imagen: producto.imagen
+    });
+    setStep('form');
+  };
+
+  const renderModalContent = () => {
+    if (step === 'barcode') {
+      return (
+        <div className="barcode-step">
+          {showScanner ? (
+            <div className="scanner-wrapper">
+              <BarcodeScanner
+                onScan={handleBarcodeScanned}
+                onClose={() => setShowScanner(false)}
+              />
+            </div>
+          ) : (
+            <>
+              <h3>Ingresar Código de Barras</h3>
+              <div className="form-group">
+                <label>Código de Barras *</label>
+                <div className="input-with-button">
+                  <input
+                    type="text"
+                    value={tempBarcode}
+                    onChange={(e) => setTempBarcode(e.target.value)}
+                    required
+                    autoFocus
+                    placeholder="Escanear o ingresar manualmente"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowScanner(true)}
+                    className="btn-scan-inline"
+                  >
+                    <FaBarcode /> Escanear
+                  </button>
+                </div>
+              </div>
+              <div className="form-actions">
+                <button type="button" onClick={closeModal} className="btn-cancel">
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBarcodeSubmit}
+                  className="btn-save"
+                  disabled={!tempBarcode}
+                >
+                  Continuar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+    return (
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Código de Barras *</label>
+          <input
+            type="text"
+            name="codigoBarras"
+            value={formData.codigoBarras}
+            readOnly
+            className="read-only-input"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Nombre *</label>
+          <input
+            type="text"
+            name="nombre"
+            value={formData.nombre}
+            onChange={handleInputChange}
+            required
+            minLength="3"
+            maxLength="100"
+          />
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Marca</label>
+            <input
+              type="text"
+              name="marca"
+              value={formData.marca}
+              onChange={handleInputChange}
+              maxLength="50"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Categoría</label>
+            <input
+              type="text"
+              name="categoria"
+              value={formData.categoria}
+              onChange={handleInputChange}
+              maxLength="50"
+            />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Precio *</label>
+            <input
+              type="number"
+              name="precio"
+              value={formData.precio}
+              onChange={handleInputChange}
+              min="0.01"
+              step="0.01"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Stock *</label>
+            <input
+              type="number"
+              name="cantidad"
+              value={formData.cantidad}
+              onChange={handleInputChange}
+              min="0"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Descripción</label>
+          <textarea
+            name="descripcion"
+            value={formData.descripcion}
+            onChange={handleInputChange}
+            rows="3"
+            maxLength="500"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>URL de Imagen</label>
+          <input
+            type="text"
+            name="imagen"
+            value={formData.imagen}
+            onChange={handleInputChange}
+            placeholder="https://ejemplo.com/imagen.jpg"
+            maxLength="255"
+          />
+        </div>
+
+        <div className="form-actions">
+          <button
+            type="button"
+            onClick={() => setStep('barcode')}
+            className="btn-back"
+          >
+            <FaArrowLeft /> Volver
+          </button>
+          <button type="submit" className="btn-save" disabled={loading}>
+            {loading ? "Guardando..." : "Guardar Producto"}
+          </button>
+        </div>
+      </form>
+    );
   };
 
   if (loading && productos.length === 0) {
@@ -170,6 +434,7 @@ const ProductosCRUD = () => {
 
   return (
     <div className="productos-crud-container">
+      <ToastContainer />
       <div className="crud-header">
         <h1><FaBox /> Administración de Productos</h1>
         <div className="header-actions">
@@ -177,14 +442,18 @@ const ProductosCRUD = () => {
             <FaSearch className="search-icon" />
             <input
               type="text"
-              placeholder="Buscar productos..."
+              placeholder="Buscar por nombre, marca, categoría o código..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button onClick={openNewModal} className="btn-add">
-            <FaPlus /> Nuevo Producto
-          </button>
+
+          <div className="buttons-container">
+            <button onClick={openFormModal} className="btn-add">
+              <FaPlus /> Nuevo Producto
+            </button>
+
+          </div>
         </div>
       </div>
 
@@ -192,7 +461,7 @@ const ProductosCRUD = () => {
         <table className="productos-table">
           <thead>
             <tr>
-              <th>Código</th>
+              <th>Código Barras</th>
               <th>Nombre</th>
               <th>Marca</th>
               <th>Precio</th>
@@ -206,7 +475,7 @@ const ProductosCRUD = () => {
               filteredProductos.map((producto) => (
                 <tr key={producto.id}>
                   <td className="text-center">
-                    <FaBarcode /> {producto.id}
+                    <FaBarcode /> {producto.codigoBarras || "N/A"}
                   </td>
                   <td>{producto.nombre}</td>
                   <td>{producto.marca || "-"}</td>
@@ -216,14 +485,14 @@ const ProductosCRUD = () => {
                   </td>
                   <td>{producto.categoria || "-"}</td>
                   <td className="actions">
-                    <button 
-                      onClick={() => openEditModal(producto)} 
+                    <button
+                      onClick={() => openEditModal(producto)}
                       className="btn-edit"
                     >
                       <FaEdit />
                     </button>
-                    <button 
-                      onClick={() => handleDelete(producto.id)} 
+                    <button
+                      onClick={() => handleDelete(producto.id)}
                       className="btn-delete"
                     >
                       <FaTrash />
@@ -242,112 +511,27 @@ const ProductosCRUD = () => {
         </table>
       </div>
 
-      {/* Modal para crear/editar */}
       <Modal
-        isOpen={modalIsOpen}
+        isOpen={modalType !== null}
         onRequestClose={closeModal}
         className="crud-modal"
         overlayClassName="crud-modal-overlay"
       >
-        <h2>{currentProducto ? "Editar Producto" : "Nuevo Producto"}</h2>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Nombre *</label>
-            <input
-              type="text"
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleInputChange}
-              required
-              minLength="3"
-              maxLength="100"
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Marca</label>
-              <input
-                type="text"
-                name="marca"
-                value={formData.marca}
-                onChange={handleInputChange}
-                maxLength="50"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Categoría</label>
-              <input
-                type="text"
-                name="categoria"
-                value={formData.categoria}
-                onChange={handleInputChange}
-                maxLength="50"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Precio *</label>
-              <input
-                type="number"
-                name="precio"
-                value={formData.precio}
-                onChange={handleInputChange}
-                min="0.01"
-                step="0.01"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Stock *</label>
-              <input
-                type="number"
-                name="cantidad"
-                value={formData.cantidad}
-                onChange={handleInputChange}
-                min="0"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Descripción</label>
-            <textarea
-              name="descripcion"
-              value={formData.descripcion}
-              onChange={handleInputChange}
-              rows="3"
-              maxLength="500"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>URL de Imagen</label>
-            <input
-              type="text"
-              name="imagen"
-              value={formData.imagen}
-              onChange={handleInputChange}
-              placeholder="https://ejemplo.com/imagen.jpg"
-              maxLength="255"
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="button" onClick={closeModal} className="btn-cancel">
-              Cancelar
+        {modalType === 'scanner' ? (
+          <div className="scanner-container">
+            <button className="scanner-close-btn" onClick={closeModal}>
+              <FaTimes />
             </button>
-            <button type="submit" className="btn-save" disabled={loading}>
-              {loading ? "Guardando..." : "Guardar Producto"}
-            </button>
+            <BarcodeScanner
+              onScan={handleBarcodeScanned}
+              onClose={closeModal}
+            />
           </div>
-        </form>
+        ) : (
+          <div className="form-container">
+            {renderModalContent()}
+          </div>
+        )}
       </Modal>
     </div>
   );
