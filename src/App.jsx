@@ -6,6 +6,7 @@ import About from "./pages/others/About";
 import Producto from "./pages/productos/Producto";
 import ProductoVisualizador from "./pages/productos/ProductoVisualizador";
 import ProductoCRUD from "./pages/productos/ProductoCRUD"
+import RegistroProducto from "./pages/registros/RegistroProducto";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/productos" element={<Producto />} />
           <Route path="/producto/:id" element={<ProductoVisualizador />} />
           <Route path="/admin/productos" element={<ProductoCRUD />} />
+          <Route path="/registro/productos" element={<RegistroProducto />} />
         </Routes>
       </main>
 
