@@ -13,6 +13,7 @@ import "./css/Producto.css";
 import "./css/ProductoVisualizador.css";
 import "./css/ProductoCRUD.css"
 import "./css/BarcodeScanner.css";
+import "./css/productos/RegistroProductos.css";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
