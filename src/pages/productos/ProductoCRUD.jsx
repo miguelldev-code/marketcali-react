@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import {
-  FaPlus, FaEdit, FaTrash, FaSearch, FaBarcode,
-  FaBox, FaArrowLeft
-} from "react-icons/fa";
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaBarcode, FaBox, FaArrowLeft, FaTimes } from "react-icons/fa";
 import Modal from 'react-modal';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -130,43 +127,54 @@ const ProductosCRUD = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  
+  // Solo para debugging - verifica qué estás enviando
+  console.log("Enviando datos:", formData);
+  console.log("Current producto:", currentProducto);
 
-    try {
-      const url = currentProducto
-        ? `http://localhost:8080/api/productos/${currentProducto.id}`
-        : "http://localhost:8080/api/productos";
+  try {
+    // Determina si es creación o actualización
+    const isUpdating = currentProducto && currentProducto.id;
+    
+    const url = isUpdating 
+      ? `http://localhost:8080/api/productos/${currentProducto.id}`
+      : "http://localhost:8080/api/productos";
 
-      const method = currentProducto ? "PUT" : "POST";
+    const method = isUpdating ? "PUT" : "POST";
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(formData)
+    });
 
-      if (!response.ok) throw new Error("Error al guardar el producto");
-
-      const updatedProduct = await response.json();
-
-      if (currentProducto) {
-        setProductos(productos.map(p =>
-          p.id === currentProducto.id ? updatedProduct : p
-        ));
-      } else {
-        setProductos([...productos, updatedProduct]);
-      }
-
-      closeModal();
-      toast.success(`Producto ${currentProducto ? "actualizado" : "creado"} correctamente`);
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Error en la operación");
     }
+
+    const result = await response.json();
+    console.log("Respuesta del servidor:", result);
+
+    // Actualiza el estado según corresponda
+    if (isUpdating) {
+      setProductos(productos.map(p => 
+        p.id === currentProducto.id ? result : p
+      ));
+    } else {
+      setProductos([...productos, result]);
+    }
+
+    closeModal();
+    toast.success(`Producto ${isUpdating ? "actualizado" : "creado"} correctamente`);
+  } catch (err) {
+    console.error("Error completo:", err);
+    toast.error(`Error: ${err.message}`);
+  }
   };
 
   const handleDelete = async (id) => {
@@ -486,7 +494,7 @@ const ProductosCRUD = () => {
                   <td>{producto.categoria || "-"}</td>
                   <td className="actions">
                     <button
-                      onClick={() => openEditModal(producto)}
+                      onClick={() => openFormModal(producto)}
                       className="btn-edit"
                     >
                       <FaEdit />
